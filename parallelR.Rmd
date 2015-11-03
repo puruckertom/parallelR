@@ -3,39 +3,85 @@ title: "parallelR"
 output: html_document
 ---
 
-presentation:
-https://docs.google.com/presentation/d/1gPVlG1pzpnMfsWTLmNXCk8HD5FmP9DuxZhsoazl2S7Q
-
-cran task view:
-https://cran.r-project.org/web/views/HighPerformanceComputing.html
-
-The parallel package ships with R and does not need to be installed.
+* [cran task view](https://cran.r-project.org/web/views/HighPerformanceComputing.html)
+* [presentation](https://docs.google.com/presentation/d/1gPVlG1pzpnMfsWTLmNXCk8HD5FmP9DuxZhsoazl2S7Q)
+* [git repo](https://github.com/puruckertom/parallelR)
+* [parallel library](https://stat.ethz.ch/R-manual/R-devel/library/parallel/doc/parallel.pdf)
 
 ```{r, echo = TRUE}
-library(parallel)
-Ncores <- detectCores()
-Ncores
+amdahl_calc <- function(p, Ncpus, singlecoreT){
+  vec <- vector(mode="double", length = Ncpus)
+  for(i in 1:Ncpus){vec[i] = singlecoreT * (p + (1-p)/i)}
+  return(vec)
+}
+amdahl_calc(.01,64,100)
+```
 
+```{r, echo = TRUE}
+Ncpus = 64
+cpus <- 1:Ncpus
+mat_cpus <- rbind(cpus, cpus, cpus, cpus)
+amdahl <- matrix(data = NA, nrow = 4, ncol = Ncpus)
+singlecoreT <- 100
+serialP <- c(0.01,0.2,0.5,0.9)
+for(i in 1:length(serialP)){amdahl[i,cpus]<- amdahl_calc(serialP[i],Ncpus,singlecoreT)}
+plot(mat_cpus, amdahl, col=c("red","blue", "green", "black"), main="Amdahls' Law", sub="serialP + (1-serialP)/cpus", ylim=c(0,100))
+```
+
+The parallel package ships with R and does not need to be installed. parallel integrates the older (but still maintained) snow and multicore libraries. 
+```{r, echo = TRUE}
+library(parallel)
+```
+
+The parallel method detectCores will try to estimate the number of cores available (logical or physical). OS-dependent. Almost all physical CPUs will have 2 or more cores.
+
+```{r, echo = TRUE}
+Ncoreslogical <- detectCores(logical = TRUE)
+Ncoreslogical
+Ncores <- detectCores(logical = FALSE)
+Ncores
+```
+
+The number of physical cores is generally the number of worker processes you want to create. The simplest approach is to split your task into chunks equal to the number of workers that are roughly the same size.
+
+We implement callable function that will sleep for a given amount of time.
+```{r, echo = TRUE}
 chill <- function(i){
   function(x) Sys.sleep(i)
 }
-
-system.time(lapply(1:10, chill(2)))
-system.time(mclapply(1:10, chill(2), mc.cores = Ncores))
-
-#windows
-cluster <- makePSOCKcluster(Ncores)
-system.time(parLapply(cluster, 1:10, function(i) Sys.sleep(1)))
-stopCluster(cluster)
 ```
+
+Then call it in a serial/non-parallel manner with lapply.
+```{r, echo = TRUE}
+#serial
+system.time(lapply(1:10, chill(2)))
+```
+
+The parallel package methods mclapply (mac/linux) and parLapply (windows) are straight-up replacements for apply functions.
+
+```{r, echo = TRUE}
+#parallel
+if(Sys.info()['sysname'] != "Windows"){
+  #mac/linux
+  system.time(mclapply(1:10, chill(2), mc.cores = Ncores))
+}else{
+  #windows
+  cluster <- makePSOCKcluster(Ncores)
+  system.time(parLapply(cluster, 1:10, function(i) Sys.sleep(2)))
+  stopCluster(cluster)
+}
+```
+
+Be careful about modifying global state.
+```{r, echo = TRUE}
+things <- c(0,0,0,0)
+#parallel
+```
+
+
+
 
 On Mac run activity monitor and double click on cpu load to get a graphic of core activity.
 
-```{r, echo = TRUE}
-cpus <- 1:64
-singlecoreT <- 100
-serialP <- .2
-multicoreT <- singlecoreT * (serialP + (1-serialP)/cpus)
-plot(cpus, multicoreT, type="l", col="red", main="Amdahls' Law (serialP = 0.2)", sub="serialP + (1-serialP)/cpus", ylim=c(0,100))
-```
+
 
