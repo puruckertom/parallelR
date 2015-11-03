@@ -3,6 +3,9 @@ title: "parallelR"
 output: html_document
 ---
 
+presentation:
+https://docs.google.com/presentation/d/1gPVlG1pzpnMfsWTLmNXCk8HD5FmP9DuxZhsoazl2S7Q
+
 cran task view:
 https://cran.r-project.org/web/views/HighPerformanceComputing.html
 
@@ -17,8 +20,8 @@ chill <- function(i){
   function(x) Sys.sleep(i)
 }
 
-system.time(lapply(1:10, chill(1)))
-system.time(mclapply(1:10, chill(1), mc.cores = Ncores))
+system.time(lapply(1:10, chill(2)))
+system.time(mclapply(1:10, chill(2), mc.cores = Ncores))
 
 #windows
 cluster <- makePSOCKcluster(Ncores)
