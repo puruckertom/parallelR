@@ -58,7 +58,6 @@ system.time(lapply(1:10, chill(2)))
 ```
 
 The parallel package methods mclapply (mac/linux) and parLapply (windows) are straight-up replacements for apply functions.
-
 ```{r, echo = TRUE}
 #parallel
 if(Sys.info()['sysname'] != "Windows"){
@@ -81,38 +80,121 @@ if(Sys.info()['sysname'] != "Windows"){
   system.time({results <- mclapply(1:10000, sqrt, mc.cores = Ncores)})
 }else{
   cluster <- makePSOCKcluster(Ncores)
-  system.time(parLapply(cluster, 1:10000, sqrt)
+  system.time(parLapply(cluster, 1:10000, sqrt))
   stopCluster(cluster)
 }
 ```
 
-mclapply is great if your code fits into the apply framework, but sometimes your program is such taht you may just want to work with loops. foreach is another parallel R library that comes with base R.
+mclapply is great if your code fits into the apply framework, but sometimes your program is such that you may just want to work with loops. foreach is another parallel R library that comes with base R.
 ```{r, echo = TRUE}
+require("foreach")
 library(foreach)
 ```
 
 In order to use foreach you need to register a back end that controls how the loop gets split up amongst the different available cores. For that, you need to either register your cores with doMC (mac/linux) or with doParallel (windows).
 ```{r, echo = TRUE}
 if(Sys.info()['sysname'] != "Windows"){
-  install.packages("doMC")
+  require("doMC")
   library(doMC)
   registerDoMC(Ncores)
 }else{
-  install.packages("doParallel")
+  require("doParallel")
   library(doParallel)
   registerDoParallel("Ncores")
   #snow is also an option
 }
 ```
 
-
-Be careful about modifying global state.
+Using foreach to building linear models from the iris data set with sampling in a for loop.
 ```{r, echo = TRUE}
-things <- c(0,0,0,0)
-#parallel
+#View(iris)
+x <- iris[which(iris[,5] != "setosa"), c(1,5)]
+trials <- 10000
+system.time({
+  r <- foreach(icount(trials), .combine=cbind) %dopar% {
+    ind <- sample(100, 100, replace = TRUE)
+    result1 <- glm(x[ind,2]~x[ind,1],family=binomial(logit))
+    coefficients(result1)
+  }
+})
 ```
 
+Note the use of %do% instead of %dopar% to run in a serial manner.
+```{r, echo = TRUE}
+x <- iris[which(iris[,5] != "setosa"), c(1,5)]
+trials <- 10000
+system.time({
+  r <- foreach(icount(trials), .combine=cbind) %do% {
+    ind <- sample(100, 100, replace = TRUE)
+    result1 <- glm(x[ind,2]~x[ind,1],family=binomial(logit))
+    coefficients(result1)
+  }
+})
+```
 
+Be careful about modifying shared vectors, foreach modifies copies of the original vector and therefore does not return what you might expect.
+```{r, echo = TRUE}
+#serial
+x_serial <- c(0,0,0,0,0)
+for(i in 1:5){
+  x_serial[i] = i*2
+}
+x_serial
+#parallel
+x_parallel <- c(0,0,0,0,0)
+foreach(i = 1:5) %dopar%{
+  x_parallel[i] = i * 2
+}
+x_parallel
+```
+
+For this reason, foreach has a combine function can return the reconstituted vector. The array assignment is moved outside of the foreach loop.
+```{r, echo = TRUE}
+#parallel foreach with combine
+x_cparallel <- c(0,0,0,0,0)
+x_cparallel <- foreach(i = 1:5, .combine=c) %dopar%{
+  i * 2
+}
+x_cparallel
+```
+
+Prescheduling is another argument that can result in big speed increases ffor parallelized foreach loops. We return to our square root of 10000 integers problem, which was actually faster to run in the serial manner than with using mclapply because the serial execution is vectorized and the parallel implemenation adds some overhead to the calculations.
+```{r, echo = TRUE}
+#serial
+system.time({results <- lapply(1:10000, sqrt)})
+#parallel
+if(Sys.info()['sysname'] != "Windows"){
+  system.time({results <- mclapply(1:10000, sqrt, mc.cores = Ncores)})
+}else{
+  cluster <- makePSOCKcluster(Ncores)
+  system.time(parLapply(cluster, 1:10000, sqrt))
+  stopCluster(cluster)
+}
+```
+
+Adding a prescheduling argument to the foreach loop adds a big reduction in the overhead associated with the parallel calculation. First, using foreach with no prescheduling:
+```{r, echo = TRUE}
+system.time({
+  result <- foreach(x = 1:10000, .options.multicore=list(preschedule=FALSE)) %dopar% {
+    sqrt(x)
+  }
+})
+```
+
+But setting prescheduling to TRUE allows for nearly an order of magnitude improvement:
+```{r, echo = TRUE}
+system.time({
+  result <- foreach(x = 1:10000, .options.multicore=list(preschedule=TRUE)) %dopar% {
+    sqrt(x)
+  }
+})
+```
+
+However, both of these approaches are much slower than the simple vectorized version of the sqrt function. Prescheduling can still be slower if the variability in the individual jobs is high. For these situations, you might want to look at the use of load balancing and queuing servers. The simplest way to do this is to increase the number of jobs relative to the worker then queue then up so that as a worker finishes a task it gets the next one in line.
+
+Random forests.
+```{r, echo = TRUE}
+```
 
 
 On Mac run activity monitor and double click on cpu load to get a graphic of core activity.
