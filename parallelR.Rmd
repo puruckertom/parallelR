@@ -17,6 +17,7 @@ amdahl_calc <- function(p, Ncpus, singlecoreT){
 amdahl_calc(.01,64,100)
 ```
 
+Create figure for Amdahls calculations bersus number of CPUs.
 ```{r, echo = TRUE}
 Ncpus = 64
 cpus <- 1:Ncpus
@@ -88,18 +89,15 @@ if(Sys.info()['sysname'] != "Windows"){
 mclapply is great if your code fits into the apply framework, but sometimes your program is such that you may just want to work with loops. foreach is another parallel R library that comes with base R.
 ```{r, echo = TRUE}
 require("foreach")
-library(foreach)
 ```
 
 In order to use foreach you need to register a back end that controls how the loop gets split up amongst the different available cores. For that, you need to either register your cores with doMC (mac/linux) or with doParallel (windows).
 ```{r, echo = TRUE}
 if(Sys.info()['sysname'] != "Windows"){
   require("doMC")
-  library(doMC)
   registerDoMC(Ncores)
 }else{
   require("doParallel")
-  library(doParallel)
   registerDoParallel("Ncores")
   #snow is also an option
 }
@@ -192,10 +190,63 @@ system.time({
 
 However, both of these approaches are much slower than the simple vectorized version of the sqrt function. Prescheduling can still be slower if the variability in the individual jobs is high. For these situations, you might want to look at the use of load balancing and queuing servers. The simplest way to do this is to increase the number of jobs relative to the worker then queue then up so that as a worker finishes a task it gets the next one in line.
 
-Random forests.
+Load wine dataset.
 ```{r, echo = TRUE}
+wine <- read.csv("~/git/parallelR/winequality-red.csv", sep=";", header=TRUE)
+#View(head(wine))
+str(wine)
+x <- wine[,1:11]
+y <- wine$quality
 ```
 
+Random forests.
+```{r, echo = TRUE}
+install.packages("randomForest")
+library(randomForest)
+Ntrees = 500
+system.time({
+  randomForest(y=y,x=x,ntree=Ntrees)
+})
+```
+
+With the foreach package.
+```{r, echo = TRUE}
+trees_per_core = floor(Ntrees / Ncores)
+system.time({
+  wine_model <- foreach(trees=rep(trees_per_core, Ncores), .combine=combine, .multicombine=TRUE) %dopar% {
+    randomForest(y = y, x = x, ntree = Ntrees)
+  }
+})
+```
+
+# caret (Classification And REgression Training)
+```{r, echo = TRUE}
+#library("devtools"); install_github("lme4/lme4",dependencies=TRUE) # for caret
+library(caret)
+library(mlbench)
+library(e1071)
+data(Sonar)
+
+inTrain <- createDataPartition(y = Sonar$Class, p = .75, list = FALSE)
+training <- Sonar[ inTrain,]
+testing <- Sonar[-inTrain,]
+
+
+ctrl <- trainControl(method = "repeatedcv", number = 8, repeats = 8)
+grid_rf <- expand.grid(.mtry = c(2, 3, 4))
+system.time({
+  rf <- train(Class ~ ., data = training,  method = "rf", trControl = ctrl, ntree=750,  tuneGrid = grid_rf)
+})
+```
+
+We have to reregister with only 1 core to see how this model performs in a serialized manner.
+```{r, echo = TRUE}
+registerDoMC(1)
+system.time({
+  rf <- train(Class ~ ., data = training,  method = "rf", trControl = ctrl, ntree=750,  tuneGrid = grid_rf)
+})
+registerDoMC(Ncores)
+```
 
 On Mac run activity monitor and double click on cpu load to get a graphic of core activity.
 
