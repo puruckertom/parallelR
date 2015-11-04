@@ -32,8 +32,9 @@ plot(mat_cpus, amdahl, col=c("red","blue", "green", "black"), main="Amdahls' Law
 Profiling, install lineprof.
 ```{r, echo = TRUE}
 #install Rtools from http://cran.r-project.org/bin/windows/Rtools/
+#update xcode for mac
 require(devtools)
-devtools::install_github("hadley/lineprof")
+#devtools::install_github("hadley/lineprof")
 library(lineprof)
 f <- function() {
   pause(0.1)
@@ -225,7 +226,7 @@ y <- wine$quality
 
 Random forests.
 ```{r, echo = TRUE}
-install.packages("randomForest")
+#install.packages("randomForest")
 library(randomForest)
 Ntrees = 500
 system.time({
@@ -271,6 +272,8 @@ system.time({
 })
 registerDoMC(Ncores)
 ```
+
+Be careful about random number generation.
 
 On Mac run activity monitor and double click on cpu load to get a graphic of core activity.
 
