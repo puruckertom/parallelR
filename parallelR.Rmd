@@ -62,7 +62,7 @@ The parallel package methods mclapply (mac/linux) and parLapply (windows) are st
 ```{r, echo = TRUE}
 #parallel
 if(Sys.info()['sysname'] != "Windows"){
-  #mac/linux
+  #mac/linux - uses a fork process that windows does not have
   system.time(mclapply(1:10, chill(2), mc.cores = Ncores))
 }else{
   #windows
@@ -71,6 +71,40 @@ if(Sys.info()['sysname'] != "Windows"){
   stopCluster(cluster)
 }
 ```
+
+However, parallel applications can introduce overhead that can actually slow down the calculations. For example, functions that are already vectorized like finding the square root of all the numbers in a vector.
+```{r, echo = TRUE}
+#serial
+system.time({results <- lapply(1:10000, sqrt)})
+#parallel
+if(Sys.info()['sysname'] != "Windows"){
+  system.time({results <- mclapply(1:10000, sqrt, mc.cores = Ncores)})
+}else{
+  cluster <- makePSOCKcluster(Ncores)
+  system.time(parLapply(cluster, 1:10000, sqrt)
+  stopCluster(cluster)
+}
+```
+
+mclapply is great if your code fits into the apply framework, but sometimes your program is such taht you may just want to work with loops. foreach is another parallel R library that comes with base R.
+```{r, echo = TRUE}
+library(foreach)
+```
+
+In order to use foreach you need to register a back end that controls how the loop gets split up amongst the different available cores. For that, you need to either register your cores with doMC (mac/linux) or with doParallel (windows).
+```{r, echo = TRUE}
+if(Sys.info()['sysname'] != "Windows"){
+  install.packages("doMC")
+  library(doMC)
+  registerDoMC(Ncores)
+}else{
+  install.packages("doParallel")
+  library(doParallel)
+  registerDoParallel("Ncores")
+  #snow is also an option
+}
+```
+
 
 Be careful about modifying global state.
 ```{r, echo = TRUE}
