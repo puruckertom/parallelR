@@ -29,6 +29,26 @@ for(i in 1:length(serialP)){amdahl[i,cpus]<- amdahl_calc(serialP[i],Ncpus,single
 plot(mat_cpus, amdahl, col=c("red","blue", "green", "black"), main="Amdahls' Law", sub="serialP + (1-serialP)/cpus", ylim=c(0,100))
 ```
 
+Profiling, install lineprof.
+```{r, echo = TRUE}
+install.packages("devtools")
+library(devtools)
+devtools::install_github("hadley/lineprof")
+library(lineprof)
+f <- function() {
+  pause(0.1)
+  g()
+  h()
+}
+g <- function() {
+  pause(0.1)
+  h()
+}
+h <- function() {
+  pause(0.1)
+}
+```
+
 The parallel package ships with R and does not need to be installed. parallel integrates the older (but still maintained) snow and multicore libraries. 
 ```{r, echo = TRUE}
 library(parallel)
