@@ -47,6 +47,12 @@ g <- function() {
 h <- function() {
   pause(0.1)
 }
+lf <- lineprof(f())
+lf
+lg <- lineprof(g())
+lg
+lh <- lineprof(h())
+lh
 ```
 
 The parallel package ships with R and does not need to be installed. parallel integrates the older (but still maintained) snow and multicore libraries. 
@@ -58,14 +64,12 @@ The parallel method detectCores will try to estimate the number of cores availab
 
 ```{r, echo = TRUE}
 Ncoreslogical <- detectCores(logical = TRUE)
-Ncoreslogical
+Ncoreslogical #Hyperthreaded
 Ncores <- detectCores(logical = FALSE)
 Ncores
 ```
 
-The number of physical cores is generally the number of worker processes you want to create. The simplest approach is to split your task into chunks equal to the number of workers that are roughly the same size.
-
-We implement callable function that will sleep for a given amount of time.
+The easiest approach is using the number of physical cores to create the number of worker processes. Then split your task into chunks equal to the number of workers that are roughly the same size. We implement callable function that will sleep for a given amount of time.
 ```{r, echo = TRUE}
 chill <- function(i){
   function(x) Sys.sleep(i)
