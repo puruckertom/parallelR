@@ -31,8 +31,8 @@ plot(mat_cpus, amdahl, col=c("red","blue", "green", "black"), main="Amdahls' Law
 
 Profiling, install lineprof.
 ```{r, echo = TRUE}
-install.packages("devtools")
-library(devtools)
+#install Rtools from http://cran.r-project.org/bin/windows/Rtools/
+require(devtools)
 devtools::install_github("hadley/lineprof")
 library(lineprof)
 f <- function() {
