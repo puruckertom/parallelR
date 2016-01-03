@@ -64,6 +64,16 @@ img {
 </div>
 
 
+<div id="things-to-do" class="section level1">
+<h1>things to do</h1>
+<ul>
+<li></li>
+<li></li>
+<li></li>
+</ul>
+</div>
+<div id="supporting-materials" class="section level1">
+<h1>supporting materials</h1>
 <ul>
 <li><a href="https://cran.r-project.org/web/views/HighPerformanceComputing.html">cran task view</a></li>
 <li><a href="https://docs.google.com/presentation/d/1gPVlG1pzpnMfsWTLmNXCk8HD5FmP9DuxZhsoazl2S7Q">presentation</a></li>
@@ -87,7 +97,7 @@ amdahl_calc(.01,64,100)</code></pre>
 ## [49]   3.020408   2.980000   2.941176   2.903846   2.867925   2.833333
 ## [55]   2.800000   2.767857   2.736842   2.706897   2.677966   2.650000
 ## [61]   2.622951   2.596774   2.571429   2.546875</code></pre>
-<p>Create figure for Amdahls calculations bersus number of CPUs.</p>
+<p>Create figure for Amdahls calculations versus number of CPUs.</p>
 <pre class="r"><code>Ncpus = 64
 cpus &lt;- 1:Ncpus
 mat_cpus &lt;- rbind(cpus, cpus, cpus, cpus)
@@ -121,19 +131,19 @@ lf</code></pre>
 <pre><code>## Reducing depth to 2 (from 4)</code></pre>
 <pre><code>##    time alloc release dups                 ref         src
 ## 1 0.077 0.001       0    2 c(&quot;pause&quot;, &quot;.Call&quot;) pause/.Call
-## 2 0.085 0.001       0    0           &lt;text&gt;#12 g/pause    
+## 2 0.080 0.001       0    0           &lt;text&gt;#12 g/pause    
 ## 3 0.074 0.001       0    0           &lt;text&gt;#13 g/h        
-## 4 0.081 0.000       0    0           &lt;text&gt;#16 h/pause</code></pre>
+## 4 0.076 0.000       0    0           &lt;text&gt;#16 h/pause</code></pre>
 <pre class="r"><code>lg &lt;- lineprof(g())
 lg</code></pre>
 <pre><code>## Reducing depth to 2 (from 3)</code></pre>
 <pre><code>##    time alloc release dups                 ref         src
-## 1 0.084 0.001       0    2 c(&quot;pause&quot;, &quot;.Call&quot;) pause/.Call
-## 2 0.081 0.000       0    0           &lt;text&gt;#16 h/pause</code></pre>
+## 1 0.076 0.001       0    2 c(&quot;pause&quot;, &quot;.Call&quot;) pause/.Call
+## 2 0.077 0.000       0    0           &lt;text&gt;#16 h/pause</code></pre>
 <pre class="r"><code>lh &lt;- lineprof(h())
 lh</code></pre>
 <pre><code>##    time alloc release dups                 ref         src
-## 1 0.082     0       0    2 c(&quot;pause&quot;, &quot;.Call&quot;) pause/.Call</code></pre>
+## 1 0.076     0       0    2 c(&quot;pause&quot;, &quot;.Call&quot;) pause/.Call</code></pre>
 <p>The parallel package ships with R and does not need to be installed. parallel integrates the older (but still maintained) snow and multicore libraries.</p>
 <pre class="r"><code>library(parallel)</code></pre>
 <p>The parallel method detectCores will try to estimate the number of cores available (logical or physical). OS-dependent. Almost all physical CPUs will have 2 or more cores.</p>
@@ -151,7 +161,7 @@ Ncores</code></pre>
 <pre class="r"><code>#serial
 system.time(lapply(1:10, chill(2)))</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.001   0.001  20.022</code></pre>
+##   0.001   0.001  20.023</code></pre>
 <p>The parallel package methods mclapply (mac/linux) and parLapply (windows) are straight-up replacements for apply functions.</p>
 <pre class="r"><code>#parallel
 if(Sys.info()['sysname'] != &quot;Windows&quot;){
@@ -164,12 +174,12 @@ if(Sys.info()['sysname'] != &quot;Windows&quot;){
   stopCluster(cluster)
 }</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.014   0.024   6.023</code></pre>
+##   0.014   0.026   6.025</code></pre>
 <p>However, parallel applications can introduce overhead that can actually slow down the calculations. For example, functions that are already vectorized like finding the square root of all the numbers in a vector.</p>
 <pre class="r"><code>#serial
 system.time({results &lt;- lapply(1:10000, sqrt)})</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.006   0.000   0.005</code></pre>
+##   0.009   0.000   0.010</code></pre>
 <pre class="r"><code>#parallel
 if(Sys.info()['sysname'] != &quot;Windows&quot;){
   system.time({results &lt;- mclapply(1:10000, sqrt, mc.cores = Ncores)})
@@ -179,7 +189,7 @@ if(Sys.info()['sysname'] != &quot;Windows&quot;){
   stopCluster(cluster)
 }</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.014   0.029   0.029</code></pre>
+##   0.029   0.044   0.053</code></pre>
 <p>mclapply is great if your code fits into the apply framework, but sometimes your program is such that you may just want to work with loops. foreach is another parallel R library that comes with base R.</p>
 <pre class="r"><code>require(&quot;foreach&quot;)</code></pre>
 <pre><code>## Loading required package: foreach</code></pre>
@@ -206,7 +216,7 @@ system.time({
   }
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##  46.628   1.237  21.684</code></pre>
+##  45.387   0.959  18.828</code></pre>
 <p>Note the use of %do% instead of %dopar% to run in a serial manner.</p>
 <pre class="r"><code>x &lt;- iris[which(iris[,5] != &quot;setosa&quot;), c(1,5)]
 trials &lt;- 10000
@@ -218,7 +228,7 @@ system.time({
   }
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##  42.792   1.148  44.759</code></pre>
+##  38.750   0.783  39.611</code></pre>
 <p>Be careful about modifying shared vectors, foreach modifies copies of the original vector and therefore does not return what you might expect.</p>
 <pre class="r"><code>#serial
 x_serial &lt;- c(0,0,0,0,0)
@@ -260,7 +270,7 @@ x_cparallel</code></pre>
 <pre class="r"><code>#serial
 system.time({results &lt;- lapply(1:10000, sqrt)})</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.005   0.000   0.005</code></pre>
+##   0.004   0.000   0.005</code></pre>
 <pre class="r"><code>#parallel
 if(Sys.info()['sysname'] != &quot;Windows&quot;){
   system.time({results &lt;- mclapply(1:10000, sqrt, mc.cores = Ncores)})
@@ -270,7 +280,7 @@ if(Sys.info()['sysname'] != &quot;Windows&quot;){
   stopCluster(cluster)
 }</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.014   0.027   0.030</code></pre>
+##   0.014   0.026   0.030</code></pre>
 <p>Adding a prescheduling argument to the foreach loop adds a big reduction in the overhead associated with the parallel calculation. First, using foreach with no prescheduling:</p>
 <pre class="r"><code>system.time({
   result &lt;- foreach(x = 1:10000, .options.multicore=list(preschedule=FALSE)) %dopar% {
@@ -278,7 +288,7 @@ if(Sys.info()['sysname'] != &quot;Windows&quot;){
   }
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##  36.149  98.021  51.832</code></pre>
+##  35.720  90.527  45.990</code></pre>
 <p>But setting prescheduling to TRUE allows for nearly an order of magnitude improvement:</p>
 <pre class="r"><code>system.time({
   result &lt;- foreach(x = 1:10000, .options.multicore=list(preschedule=TRUE)) %dopar% {
@@ -286,7 +296,7 @@ if(Sys.info()['sysname'] != &quot;Windows&quot;){
   }
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   2.774   0.077   3.129</code></pre>
+##   2.914   0.219   2.896</code></pre>
 <p>However, both of these approaches are much slower than the simple vectorized version of the sqrt function. Prescheduling can still be slower if the variability in the individual jobs is high. For these situations, you might want to look at the use of load balancing and queuing servers. The simplest way to do this is to increase the number of jobs relative to the worker then queue then up so that as a worker finishes a task it gets the next one in line.</p>
 <p>Load wine dataset.</p>
 <pre class="r"><code>wine &lt;- read.csv(&quot;~/git/parallelR/winequality-red.csv&quot;, sep=&quot;;&quot;, header=TRUE)
@@ -317,7 +327,7 @@ system.time({
   randomForest(y=y,x=x,ntree=Ntrees)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   3.520   0.091   3.658</code></pre>
+##   3.421   0.052   3.484</code></pre>
 <p>With the foreach package.</p>
 <pre class="r"><code>trees_per_core = floor(Ntrees / Ncores)
 system.time({
@@ -326,7 +336,8 @@ system.time({
   }
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##  14.804   1.456   7.284</code></pre>
+##  14.544   1.165   6.836</code></pre>
+</div>
 <div id="caret-classification-and-regression-training" class="section level1">
 <h1>caret (Classification And REgression Training)</h1>
 <pre class="r"><code>#library(&quot;devtools&quot;); install_github(&quot;lme4/lme4&quot;,dependencies=TRUE) # for caret
@@ -348,14 +359,14 @@ system.time({
   rf &lt;- train(Class ~ ., data = training,  method = &quot;rf&quot;, trControl = ctrl, ntree=750,  tuneGrid = grid_rf)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##  78.824   3.209  31.560</code></pre>
+##  82.282   3.112  36.758</code></pre>
 <p>We have to reregister with only 1 core to see how this model performs in a serialized manner.</p>
 <pre class="r"><code>registerDoMC(1)
 system.time({
   rf &lt;- train(Class ~ ., data = training,  method = &quot;rf&quot;, trControl = ctrl, ntree=750,  tuneGrid = grid_rf)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##  71.369   2.043  74.405</code></pre>
+##  69.547   1.402  71.112</code></pre>
 <pre class="r"><code>registerDoMC(Ncores)</code></pre>
 <p>Be careful about random number generation.</p>
 <p>On Mac run activity monitor and double click on cpu load to get a graphic of core activity.</p>

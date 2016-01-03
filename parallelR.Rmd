@@ -3,6 +3,14 @@ title: "parallelR"
 output: html_document
 ---
 
+things to do
+============
+- 
+- 
+- 
+
+supporting materials
+============
 * [cran task view](https://cran.r-project.org/web/views/HighPerformanceComputing.html)
 * [presentation](https://docs.google.com/presentation/d/1gPVlG1pzpnMfsWTLmNXCk8HD5FmP9DuxZhsoazl2S7Q)
 * [git repo](https://github.com/puruckertom/parallelR)
@@ -17,7 +25,7 @@ amdahl_calc <- function(p, Ncpus, singlecoreT){
 amdahl_calc(.01,64,100)
 ```
 
-Create figure for Amdahls calculations bersus number of CPUs.
+Create figure for Amdahls calculations versus number of CPUs.
 ```{r, echo = TRUE}
 Ncpus = 64
 cpus <- 1:Ncpus
