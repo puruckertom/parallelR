@@ -9,6 +9,30 @@ things to do
 - 
 - 
 
+general configuration
+=====================
+Install and load supporting libraries.
+
+```{r eval=TRUE, echo=FALSE}
+print(Sys.info()[4])
+#install Rtools from http://cran.r-project.org/bin/windows/Rtools/
+#update xcode for mac
+#require(devtools)
+#devtools::install_github("hadley/lineprof")
+#library(lineprof) #lineprof deprecated for profvis
+#library(profvis) not on cran yet
+#also requiresrtools33
+#devtools::install_github("rstudio/profvis") 
+require("foreach")
+#library("devtools"); install_github("lme4/lme4",dependencies=TRUE) # for caret
+library(caret)
+library(mlbench)
+library(e1071)
+
+print("list of loaded packages: ")
+print((.packages()))
+```
+
 supporting materials
 ============
 * [cran task view](https://cran.r-project.org/web/views/HighPerformanceComputing.html)
@@ -38,12 +62,7 @@ plot(mat_cpus, amdahl, col=c("red","blue", "green", "black"), main="Amdahls' Law
 ```
 
 Profiling, install lineprof.
-```{r, echo = TRUE}
-#install Rtools from http://cran.r-project.org/bin/windows/Rtools/
-#update xcode for mac
-require(devtools)
-#devtools::install_github("hadley/lineprof")
-library(lineprof)
+```{r, eval=FALSE, echo = FALSE}
 f <- function() {
   pause(0.1)
   g()
@@ -121,7 +140,7 @@ if(Sys.info()['sysname'] != "Windows"){
 
 mclapply is great if your code fits into the apply framework, but sometimes your program is such that you may just want to work with loops. foreach is another parallel R library that comes with base R.
 ```{r, echo = TRUE}
-require("foreach")
+
 ```
 
 In order to use foreach you need to register a back end that controls how the loop gets split up amongst the different available cores. For that, you need to either register your cores with doMC (mac/linux) or with doParallel (windows).
@@ -254,10 +273,6 @@ system.time({
 
 # caret (Classification And REgression Training)
 ```{r, echo = TRUE}
-#library("devtools"); install_github("lme4/lme4",dependencies=TRUE) # for caret
-library(caret)
-library(mlbench)
-library(e1071)
 data(Sonar)
 
 inTrain <- createDataPartition(y = Sonar$Class, p = .75, list = FALSE)
