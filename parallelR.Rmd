@@ -83,12 +83,12 @@ benchmark(runif(100000),replications = 1000)
 
 parallelization
 ====================
-The parallel package ships with R and does not need to be installed. parallel integrates the older (but still maintained) snow and multicore libraries. 
+The parallel package ships with R and does not need to be installed. parallel integrates the older (but still maintained) snow and multicore libraries. multicore uses a fork process not available on Windows.  
 ```{r, echo = TRUE}
 library(parallel)
 ```
 
-The parallel method detectCores will try to estimate the number of cores available (logical or physical). Logical cores (hyperthreaded) is the product of physical cores and number of threads per core. OS-dependent. Almost all physical CPUs will have 2 or more physical cores. Your mileage may vary with logical cores, I have not seen any windows machines where R can detect logical cores > physical cores.
+The parallel method detectCores will try to estimate the number of cores available (logical or physical). Logical cores (hyperthreaded) is the product of physical cores and number of threads per core. OS-dependent. Almost all physical CPUs will have 2 or more physical cores. Your mileage may vary with logical cores.
 
 ```{r, echo = TRUE}
 Ncoreslogical <- detectCores(logical = TRUE)
@@ -147,19 +147,21 @@ require("foreach")
 
 foreach
 =======
-In order to use foreach you need to register a back end that controls how the loop gets split up amongst the different available cores. For that, you need to either register your cores with doMC (mac/linux) or with doParallel (windows).
+The doParallel package is an interface between the foreach package and the parallel package. In order to use foreach you need to register a back end that controls how the loop gets split up amongst the different available cores. For that, you need to either register your cores with doMC (mac/linux) or with doParallel (windows).
 ```{r, echo = TRUE}
+library(foreach)
 if(Sys.info()['sysname'] != "Windows"){
   require("doMC")
   registerDoMC(Ncores)
 }else{
   require("doParallel")
-  registerDoParallel("Ncores")
+  cl <- makeCluster(2)
+  registerDoParallel(cl)
   #snow is also an option
 }
 ```
 
-Using foreach to building linear models from the iris data set with sampling in a for loop.
+Using foreach to building linear models from the iris data set with sampling in a for loop. Not working on windows.
 ```{r, echo = TRUE}
 #View(iris)
 x <- iris[which(iris[,5] != "setosa"), c(1,5)]
@@ -212,7 +214,7 @@ x_cparallel <- foreach(i = 1:5, .combine=c) %dopar%{
 x_cparallel
 ```
 
-Prescheduling is another argument that can result in big speed increases ffor parallelized foreach loops. We return to our square root of 10000 integers problem, which was actually faster to run in the serial manner than with using mclapply because the serial execution is vectorized and the parallel implemenation adds some overhead to the calculations.
+Prescheduling is another argument that can result in big speed increases for parallelized foreach loops. We return to our square root of 10000 integers problem, which was actually faster to run in the serial manner than with using mclapply because the serial execution is vectorized and the parallel implemenation adds some overhead to the calculations.
 ```{r, echo = TRUE}
 #serial
 system.time({results <- lapply(1:10000, sqrt)})
@@ -235,7 +237,7 @@ system.time({
 })
 ```
 
-But setting prescheduling to TRUE allows for nearly an order of magnitude improvement:
+But setting prescheduling to TRUE can allow for nearly an order of magnitude improvement:
 ```{r, echo = TRUE}
 system.time({
   result <- foreach(x = 1:10000, .options.multicore=list(preschedule=TRUE)) %dopar% {
@@ -257,7 +259,15 @@ machine learning applications
 =============================
 Load wine dataset.
 ```{r, echo = TRUE}
-wine <- read.csv("~/git/parallelR/winequality-red.csv", sep=";", header=TRUE)
+#tom epa windows dell precision t7610
+if(Sys.info()[4]=="DZ2626UTPURUCKE"){
+  wine <- read.csv("k:/git/parallelR/winequality-red.csv", sep=";", header=TRUE)
+}
+#tom laptop
+if(Sys.info()[4]=="stp-air.local"){
+  vpdir<-path.expand("~/git/beeRpop/")
+}
+
 #View(head(wine))
 str(wine)
 x <- wine[,1:11]
@@ -278,8 +288,9 @@ With the foreach package.
 ```{r, echo = TRUE}
 trees_per_core = floor(Ntrees / Ncores)
 system.time({
-  wine_model <- foreach(trees=rep(trees_per_core, Ncores), .combine=combine, .multicombine=TRUE) %dopar% {
-    randomForest(y = y, x = x, ntree = Ntrees)
+  wine_model <- foreach(trees=rep(trees_per_core, Ncores), .combine=combine, 
+                        .multicombine=TRUE,   .packages='randomForest') %dopar% {randomForest(
+                          y = y, x = x, ntree = Ntrees)
   }
 })
 ```
@@ -306,11 +317,34 @@ system.time({
 
 We have to reregister with only 1 core to see how this model performs in a serialized manner.
 ```{r, echo = TRUE}
-registerDoMC(1)
+if(Sys.info()['sysname'] != "Windows"){
+  require("doMC")
+  registerDoMC(1)
+}else{
+  require("doParallel")
+  cl <- makeCluster(2) #problem
+  registerDoParallel(cl)
+  #snow is also an option
+}
+
 system.time({
   rf <- train(Class ~ ., data = training,  method = "rf", trControl = ctrl, ntree=750,  tuneGrid = grid_rf)
 })
-registerDoMC(Ncores)
+
+#reset
+if(Sys.info()['sysname'] != "Windows"){
+  require("doMC")
+  registerDoMC(Ncores)
+}else{
+  require("doParallel")
+  cl <- makeCluster(2)
+  registerDoParallel(cl)
+  #snow is also an option
+}
+```
+
+```{r, echo = TRUE}
+library(ParallelForest)
 ```
 
 Be careful about random number generation.

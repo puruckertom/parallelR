@@ -3,6 +3,5 @@ account: rpubs
 server: rpubs.com
 bundleId:
         https://api.rpubs.com/api/v1/document/123683/92344c31b6504b4da8633cddb7e6c447
-url:
-        http://rpubs.com/publish/claim/123683/e7ed8fdbcd1a4280a2f7dea02f623fb4
-when: 1446654575.84044
+url: http://rpubs.com/puruckertom/123683
+when: 1453311629.67901
