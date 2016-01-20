@@ -15,26 +15,12 @@ Install and load supporting libraries.
 
 ```{r eval=TRUE, echo=FALSE}
 print(Sys.info()[4])
-#install Rtools from http://cran.r-project.org/bin/windows/Rtools/
-#update xcode for mac
-#require(devtools)
-#devtools::install_github("hadley/lineprof")
-#library(lineprof) #lineprof deprecated for profvis
-#library(profvis) not on cran yet
-#also requiresrtools33
-#devtools::install_github("rstudio/profvis") 
-require("foreach")
-#library("devtools"); install_github("lme4/lme4",dependencies=TRUE) # for caret
-library(caret)
-library(mlbench)
-library(e1071)
-
 print("list of loaded packages: ")
 print((.packages()))
 ```
 
 supporting materials
-============
+====================
 * [cran task view](https://cran.r-project.org/web/views/HighPerformanceComputing.html)
 * [presentation](https://docs.google.com/presentation/d/1gPVlG1pzpnMfsWTLmNXCk8HD5FmP9DuxZhsoazl2S7Q)
 * [git repo](https://github.com/puruckertom/parallelR)
@@ -61,8 +47,16 @@ for(i in 1:length(serialP)){amdahl[i,cpus]<- amdahl_calc(serialP[i],Ncpus,single
 plot(mat_cpus, amdahl, col=c("red","blue", "green", "black"), main="Amdahls' Law", sub="serialP + (1-serialP)/cpus", ylim=c(0,100))
 ```
 
-Profiling, install lineprof.
+Profiling, lineprof now deprecated in favor of profvis, also not on CRAN yet.
 ```{r, eval=FALSE, echo = FALSE}
+#install Rtools from http://cran.r-project.org/bin/windows/Rtools/
+#update xcode for mac
+require(devtools)
+#devtools::install_github("hadley/lineprof")
+#library(lineprof) #lineprof deprecated for profvis
+#library(profvis) not on cran yet
+#also requiresrtools33
+devtools::install_github("rstudio/profvis") 
 f <- function() {
   pause(0.1)
   g()
@@ -83,12 +77,31 @@ lh <- lineprof(h())
 lh
 ```
 
+The library rbenchmark will run a process multiple times to get distribution statistics on execution time.
+```{r, echo = TRUE}
+library(rbenchmark)
+benchmark(runif(100000),replications = 1)
+benchmark(runif(100000),replications = 1)
+benchmark(runif(100000),replications = 1)
+benchmark(runif(100000),replications = 10)
+benchmark(runif(100000),replications = 1000)
+```
+
+simple performance tweaks
+====================
+* [vectorization]
+* [preallocate data structures]
+* [avoid dataframes]
+* [use builtin functions]
+
+parallelization
+====================
 The parallel package ships with R and does not need to be installed. parallel integrates the older (but still maintained) snow and multicore libraries. 
 ```{r, echo = TRUE}
 library(parallel)
 ```
 
-The parallel method detectCores will try to estimate the number of cores available (logical or physical). OS-dependent. Almost all physical CPUs will have 2 or more cores.
+The parallel method detectCores will try to estimate the number of cores available (logical or physical). Logical cores (hyperthreaded) is the product of physical cores and number of threads per core. OS-dependent. Almost all physical CPUs will have 2 or more physical cores. Your mileage may vary with logical cores, I have not seen any windows machines where R can detect logical cores > physical cores.
 
 ```{r, echo = TRUE}
 Ncoreslogical <- detectCores(logical = TRUE)
@@ -104,10 +117,10 @@ chill <- function(i){
 }
 ```
 
-Then call it in a serial/non-parallel manner with lapply.
+Then call it in a serial/non-parallel manner with lapply. system.time() reports user time (execution of functions), system time (user time plus memory overhead, disk access), and elapsed time (wall clock).
 ```{r, echo = TRUE}
 #serial
-system.time(lapply(1:10, chill(2)))
+system.time(lapply(1:10, chill(1)))
 ```
 
 The parallel package methods mclapply (mac/linux) and parLapply (windows) are straight-up replacements for apply functions.
@@ -115,7 +128,7 @@ The parallel package methods mclapply (mac/linux) and parLapply (windows) are st
 #parallel
 if(Sys.info()['sysname'] != "Windows"){
   #mac/linux - uses a fork process that windows does not have
-  system.time(mclapply(1:10, chill(2), mc.cores = Ncores))
+  system.time(mclapply(1:10, chill(1), mc.cores = Ncores))
 }else{
   #windows
   cluster <- makePSOCKcluster(Ncores)
@@ -140,7 +153,7 @@ if(Sys.info()['sysname'] != "Windows"){
 
 mclapply is great if your code fits into the apply framework, but sometimes your program is such that you may just want to work with loops. foreach is another parallel R library that comes with base R.
 ```{r, echo = TRUE}
-
+require("foreach")
 ```
 
 In order to use foreach you need to register a back end that controls how the loop gets split up amongst the different available cores. For that, you need to either register your cores with doMC (mac/linux) or with doParallel (windows).
@@ -273,6 +286,10 @@ system.time({
 
 # caret (Classification And REgression Training)
 ```{r, echo = TRUE}
+#library("devtools"); install_github("lme4/lme4",dependencies=TRUE) # for caret
+library(caret)
+library(mlbench)
+library(e1071)
 data(Sonar)
 
 inTrain <- createDataPartition(y = Sonar$Class, p = .75, list = FALSE)
