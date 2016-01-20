@@ -129,13 +129,13 @@ if(Sys.info()['sysname'] != "Windows"){
 However, parallel applications can introduce overhead that can actually slow down the calculations. For example, functions that are already vectorized like finding the square root of all the numbers in a vector.
 ```{r, echo = TRUE}
 #serial
-system.time({results <- lapply(1:10000, sqrt)})
+system.time({results <- lapply(1:100000, sqrt)})
 #parallel
 if(Sys.info()['sysname'] != "Windows"){
-  system.time({results <- mclapply(1:10000, sqrt, mc.cores = Ncores)})
+  system.time({results <- mclapply(1:100000, sqrt, mc.cores = Ncores)})
 }else{
   cluster <- makePSOCKcluster(Ncores)
-  system.time(parLapply(cluster, 1:10000, sqrt))
+  system.time(parLapply(cluster, 1:100000, sqrt))
   stopCluster(cluster)
 }
 ```
@@ -161,11 +161,12 @@ if(Sys.info()['sysname'] != "Windows"){
 }
 ```
 
-Using foreach to building linear models from the iris data set with sampling in a for loop. Not working on windows.
+Using foreach to building linear models from the iris data set with sampling in a for loop.
 ```{r, echo = TRUE}
 #View(iris)
 x <- iris[which(iris[,5] != "setosa"), c(1,5)]
 trials <- 10000
+print("parallel time =")
 system.time({
   r <- foreach(icount(trials), .combine=cbind) %dopar% {
     ind <- sample(100, 100, replace = TRUE)
@@ -179,6 +180,7 @@ Note the use of %do% instead of %dopar% to run in a serial manner.
 ```{r, echo = TRUE}
 x <- iris[which(iris[,5] != "setosa"), c(1,5)]
 trials <- 10000
+print("serial time =")
 system.time({
   r <- foreach(icount(trials), .combine=cbind) %do% {
     ind <- sample(100, 100, replace = TRUE)
