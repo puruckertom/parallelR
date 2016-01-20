@@ -64,17 +64,9 @@ img {
 </div>
 
 
-<div id="things-to-do" class="section level1">
-<h1>things to do</h1>
-<ul>
-<li></li>
-<li></li>
-<li></li>
-</ul>
-</div>
 <div id="general-configuration" class="section level1">
 <h1>general configuration</h1>
-<p>Install and load supporting libraries.</p>
+<p>Install and load supporting libraries. We will load as we go.</p>
 <pre><code>##        nodename 
 ## &quot;stp-air.local&quot;</code></pre>
 <pre><code>## [1] &quot;list of loaded packages: &quot;</code></pre>
@@ -121,7 +113,7 @@ plot(mat_cpus, amdahl, col=c(&quot;red&quot;,&quot;blue&quot;, &quot;green&quot;
 <pre class="r"><code>library(rbenchmark)
 benchmark(runif(100000),replications = 1)</code></pre>
 <pre><code>##           test replications elapsed relative user.self sys.self user.child
-## 1 runif(1e+05)            1   0.005        1     0.004        0          0
+## 1 runif(1e+05)            1   0.005        1     0.005    0.001          0
 ##   sys.child
 ## 1         0</code></pre>
 <pre class="r"><code>benchmark(runif(100000),replications = 1)</code></pre>
@@ -136,23 +128,14 @@ benchmark(runif(100000),replications = 1)</code></pre>
 ## 1         0</code></pre>
 <pre class="r"><code>benchmark(runif(100000),replications = 10)</code></pre>
 <pre><code>##           test replications elapsed relative user.self sys.self user.child
-## 1 runif(1e+05)           10   0.048        1     0.046    0.002          0
+## 1 runif(1e+05)           10   0.053        1      0.05    0.002          0
 ##   sys.child
 ## 1         0</code></pre>
 <pre class="r"><code>benchmark(runif(100000),replications = 1000)</code></pre>
 <pre><code>##           test replications elapsed relative user.self sys.self user.child
-## 1 runif(1e+05)         1000   4.889        1     4.733    0.107          0
+## 1 runif(1e+05)         1000   5.032        1     4.894    0.096          0
 ##   sys.child
 ## 1         0</code></pre>
-</div>
-<div id="performance-tweaks" class="section level1">
-<h1>performance tweaks</h1>
-<ul>
-<li>[vectorization]</li>
-<li>[presentation]</li>
-<li>[git repo]</li>
-<li>[parallel library]</li>
-</ul>
 </div>
 <div id="parallelization" class="section level1">
 <h1>parallelization</h1>
@@ -173,7 +156,10 @@ Ncores</code></pre>
 <pre class="r"><code>#serial
 system.time(lapply(1:10, chill(1)))</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.001   0.001  10.025</code></pre>
+##   0.000   0.000  10.021</code></pre>
+</div>
+<div id="apply-functions" class="section level1">
+<h1>apply functions</h1>
 <p>The parallel package methods mclapply (mac/linux) and parLapply (windows) are straight-up replacements for apply functions.</p>
 <pre class="r"><code>#parallel
 if(Sys.info()['sysname'] != &quot;Windows&quot;){
@@ -186,12 +172,12 @@ if(Sys.info()['sysname'] != &quot;Windows&quot;){
   stopCluster(cluster)
 }</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.014   0.024   3.019</code></pre>
+##   0.014   0.022   3.024</code></pre>
 <p>However, parallel applications can introduce overhead that can actually slow down the calculations. For example, functions that are already vectorized like finding the square root of all the numbers in a vector.</p>
 <pre class="r"><code>#serial
 system.time({results &lt;- lapply(1:10000, sqrt)})</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.006   0.000   0.007</code></pre>
+##   0.005   0.000   0.007</code></pre>
 <pre class="r"><code>#parallel
 if(Sys.info()['sysname'] != &quot;Windows&quot;){
   system.time({results &lt;- mclapply(1:10000, sqrt, mc.cores = Ncores)})
@@ -201,10 +187,13 @@ if(Sys.info()['sysname'] != &quot;Windows&quot;){
   stopCluster(cluster)
 }</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.015   0.022   0.028</code></pre>
+##   0.029   0.040   0.038</code></pre>
 <p>mclapply is great if your code fits into the apply framework, but sometimes your program is such that you may just want to work with loops. foreach is another parallel R library that comes with base R.</p>
 <pre class="r"><code>require(&quot;foreach&quot;)</code></pre>
 <pre><code>## Loading required package: foreach</code></pre>
+</div>
+<div id="foreach" class="section level1">
+<h1>foreach</h1>
 <p>In order to use foreach you need to register a back end that controls how the loop gets split up amongst the different available cores. For that, you need to either register your cores with doMC (mac/linux) or with doParallel (windows).</p>
 <pre class="r"><code>if(Sys.info()['sysname'] != &quot;Windows&quot;){
   require(&quot;doMC&quot;)
@@ -228,7 +217,7 @@ system.time({
   }
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##  46.567   1.041  19.908</code></pre>
+##  16.740   0.350  18.504</code></pre>
 <p>Note the use of %do% instead of %dopar% to run in a serial manner.</p>
 <pre class="r"><code>x &lt;- iris[which(iris[,5] != &quot;setosa&quot;), c(1,5)]
 trials &lt;- 10000
@@ -240,7 +229,7 @@ system.time({
   }
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##  42.967   0.977  44.476</code></pre>
+##  41.571   0.847  42.736</code></pre>
 <p>Be careful about modifying shared vectors, foreach modifies copies of the original vector and therefore does not return what you might expect.</p>
 <pre class="r"><code>#serial
 x_serial &lt;- c(0,0,0,0,0)
@@ -282,7 +271,7 @@ x_cparallel</code></pre>
 <pre class="r"><code>#serial
 system.time({results &lt;- lapply(1:10000, sqrt)})</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.005   0.000   0.005</code></pre>
+##   0.005   0.000   0.006</code></pre>
 <pre class="r"><code>#parallel
 if(Sys.info()['sysname'] != &quot;Windows&quot;){
   system.time({results &lt;- mclapply(1:10000, sqrt, mc.cores = Ncores)})
@@ -292,7 +281,7 @@ if(Sys.info()['sysname'] != &quot;Windows&quot;){
   stopCluster(cluster)
 }</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.016   0.026   0.030</code></pre>
+##   0.028   0.043   0.031</code></pre>
 <p>Adding a prescheduling argument to the foreach loop adds a big reduction in the overhead associated with the parallel calculation. First, using foreach with no prescheduling:</p>
 <pre class="r"><code>system.time({
   result &lt;- foreach(x = 1:10000, .options.multicore=list(preschedule=FALSE)) %dopar% {
@@ -300,7 +289,7 @@ if(Sys.info()['sysname'] != &quot;Windows&quot;){
   }
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##  36.567  94.222  48.903</code></pre>
+##  35.446  91.897  46.844</code></pre>
 <p>But setting prescheduling to TRUE allows for nearly an order of magnitude improvement:</p>
 <pre class="r"><code>system.time({
   result &lt;- foreach(x = 1:10000, .options.multicore=list(preschedule=TRUE)) %dopar% {
@@ -308,8 +297,20 @@ if(Sys.info()['sysname'] != &quot;Windows&quot;){
   }
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   3.028   0.248   3.099</code></pre>
+##   2.945   0.304   3.009</code></pre>
 <p>However, both of these approaches are much slower than the simple vectorized version of the sqrt function. Prescheduling can still be slower if the variability in the individual jobs is high. For these situations, you might want to look at the use of load balancing and queuing servers. The simplest way to do this is to increase the number of jobs relative to the worker then queue then up so that as a worker finishes a task it gets the next one in line.</p>
+</div>
+<div id="other-simple-performance-tweaks" class="section level1">
+<h1>other simple performance tweaks</h1>
+<ul>
+<li>vectorization</li>
+<li>preallocate data structures</li>
+<li>avoid dataframes</li>
+<li>use builtin functions</li>
+</ul>
+</div>
+<div id="machine-learning-applications" class="section level1">
+<h1>machine learning applications</h1>
 <p>Load wine dataset.</p>
 <pre class="r"><code>wine &lt;- read.csv(&quot;~/git/parallelR/winequality-red.csv&quot;, sep=&quot;;&quot;, header=TRUE)
 #View(head(wine))
@@ -339,7 +340,7 @@ system.time({
   randomForest(y=y,x=x,ntree=Ntrees)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##   3.432   0.066   3.522</code></pre>
+##   3.351   0.059   3.431</code></pre>
 <p>With the foreach package.</p>
 <pre class="r"><code>trees_per_core = floor(Ntrees / Ncores)
 system.time({
@@ -348,7 +349,7 @@ system.time({
   }
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##  14.470   1.218   7.310</code></pre>
+##  14.270   1.084   6.614</code></pre>
 </div>
 <div id="caret-classification-and-regression-training" class="section level1">
 <h1>caret (Classification And REgression Training)</h1>
@@ -371,14 +372,14 @@ system.time({
   rf &lt;- train(Class ~ ., data = training,  method = &quot;rf&quot;, trControl = ctrl, ntree=750,  tuneGrid = grid_rf)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##  55.685   3.048  34.315</code></pre>
+##  52.522   2.639  29.729</code></pre>
 <p>We have to reregister with only 1 core to see how this model performs in a serialized manner.</p>
 <pre class="r"><code>registerDoMC(1)
 system.time({
   rf &lt;- train(Class ~ ., data = training,  method = &quot;rf&quot;, trControl = ctrl, ntree=750,  tuneGrid = grid_rf)
 })</code></pre>
 <pre><code>##    user  system elapsed 
-##  70.769   2.031  73.703</code></pre>
+##  69.977   1.958  72.782</code></pre>
 <pre class="r"><code>registerDoMC(Ncores)</code></pre>
 <p>Be careful about random number generation.</p>
 <p>On Mac run activity monitor and double click on cpu load to get a graphic of core activity.</p>

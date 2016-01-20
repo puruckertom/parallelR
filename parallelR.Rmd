@@ -3,15 +3,9 @@ title: "parallelR"
 output: html_document
 ---
 
-things to do
-============
-- 
-- 
-- 
-
 general configuration
 =====================
-Install and load supporting libraries.
+Install and load supporting libraries. We will load as we go.
 
 ```{r eval=TRUE, echo=FALSE}
 print(Sys.info()[4])
@@ -87,13 +81,6 @@ benchmark(runif(100000),replications = 10)
 benchmark(runif(100000),replications = 1000)
 ```
 
-simple performance tweaks
-====================
-* [vectorization]
-* [preallocate data structures]
-* [avoid dataframes]
-* [use builtin functions]
-
 parallelization
 ====================
 The parallel package ships with R and does not need to be installed. parallel integrates the older (but still maintained) snow and multicore libraries. 
@@ -123,6 +110,8 @@ Then call it in a serial/non-parallel manner with lapply. system.time() reports 
 system.time(lapply(1:10, chill(1)))
 ```
 
+apply functions
+=================
 The parallel package methods mclapply (mac/linux) and parLapply (windows) are straight-up replacements for apply functions.
 ```{r, echo = TRUE}
 #parallel
@@ -156,6 +145,8 @@ mclapply is great if your code fits into the apply framework, but sometimes your
 require("foreach")
 ```
 
+foreach
+=======
 In order to use foreach you need to register a back end that controls how the loop gets split up amongst the different available cores. For that, you need to either register your cores with doMC (mac/linux) or with doParallel (windows).
 ```{r, echo = TRUE}
 if(Sys.info()['sysname'] != "Windows"){
@@ -255,6 +246,15 @@ system.time({
 
 However, both of these approaches are much slower than the simple vectorized version of the sqrt function. Prescheduling can still be slower if the variability in the individual jobs is high. For these situations, you might want to look at the use of load balancing and queuing servers. The simplest way to do this is to increase the number of jobs relative to the worker then queue then up so that as a worker finishes a task it gets the next one in line.
 
+other simple performance tweaks
+=========================
+* vectorization
+* preallocate data structures
+* avoid dataframes
+* use builtin functions
+
+machine learning applications
+=============================
 Load wine dataset.
 ```{r, echo = TRUE}
 wine <- read.csv("~/git/parallelR/winequality-red.csv", sep=";", header=TRUE)
